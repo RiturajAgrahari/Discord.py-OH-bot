@@ -21,6 +21,7 @@ from events import check_inventory, check_event_status, once_human_event
 load_dotenv()
 
 MAIN_GUILD_ID = int(os.getenv("MAIN_SERVER_ID"))
+
 ENERGY_LINK = '<:energylinks:1146372968570691604>'
 
 

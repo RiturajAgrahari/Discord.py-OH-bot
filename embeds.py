@@ -5,50 +5,66 @@ from database import profile
 alphabets = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
              'V', 'W', 'X', 'Y', 'Z']
 
+ENERGY_LINK = '<:energylinks:1146372968570691604>'
 
-async def help_embed(interaction):
+async def help_embed(name, avatar):
     embed = discord.Embed(
-        title='HELP-DESK',
-        description='Here is the list of commands that is provided by the vultures bot!',
-        color=discord.Color.green()
+        title='Vultures',
+        description='Players can gain energy links by claiming it once a day with the command /daily.'
+                    ' A player can use their energy links at events by using the command /events,'
+                    ' letter event.',
+        color=discord.Color.blue()
     )
     embed.add_field(
-        name='/daily',
-        value='To claim your daily energy link <:energylinks:1146372968570691604>',
+        name="</daily:1123130558768238662>",
+        value="Claim your daily energy link",
         inline=False
     )
     embed.add_field(
-        name='/energy_link',
-        value='To check the number of energy links you have!',
+        name="* Reset [00:00:00 UTC+0]",
+        value="After reset you will be able to get another drop from the above command",
         inline=False
     )
     embed.add_field(
-        name='/play',
-        value='To play games!',
+        name="</energy_link:1123130558768238663>",
+        value="To check the how much energy links you have.",
         inline=False
     )
     embed.add_field(
-        name='/statistics',
-        value='To check statistics of a specific player!',
+        name="</play:1123130558768238665>",
+        value="To play games like rock paper scissor and tic tac toe with your friends.",
         inline=False
     )
     embed.add_field(
-        name='/leaderboard',
-        value='To check the game leaderboard of a players!',
+        name="</statistics:1123130558768238666>",
+        value="To check the statistics of games of a specific player!",
         inline=False
     )
     embed.add_field(
-        name='/event',
-        value="To participate and play in events",
+        name="</leaderboard:1134394087227789332>",
+        value="To check the game leaderboard of a players!",
         inline=False
     )
     embed.add_field(
-        name='/inventory',
-        value="To check whats is in your inventory",
+        name="</inventory:1139936270810882073>",
+        value="To check whats is in your inventory!",
         inline=False
     )
-    embed.set_image(url='https://cdn.discordapp.com/attachments/1107516904832245820/1155774955800236062/image.png')
-    embed.set_footer(text=f'Requested By : {interaction.user.name}')
+    embed.add_field(
+        name="</event:1139936270810882074>",
+        value="To participate and play in events!",
+        inline=False
+    )
+    embed.set_author(name=name, icon_url=avatar)
+    embed.set_footer(text='Once Human')
+    return embed
+
+async def daily_claim(interaction, coins):
+    embed = discord.Embed(
+        title='',
+        description=f'{interaction.user.mention}, you got {coins} {ENERGY_LINK} today!',
+        colour=discord.Color.blue()
+    )
     return embed
 
 
@@ -101,7 +117,7 @@ async def rps_stat_embed(games, player_name, Win, Loss, Tie, avatar, interaction
         value=Win_rate,
         inline=True
     )
-    embed.set_footer(text=f'Requested By : {interaction.user.name}')
+    embed.set_footer(text=f'Once Human')
     return embed
 
 
@@ -120,14 +136,14 @@ async def guess_stat_embed(games, player_name, Win, Loss, avatar, interaction):
     embed.add_field(name=f'Win Rate',
                     value=Win_rate,
                     inline=False)
-    embed.set_footer(text=f'Requested By : {interaction.user.name}')
+    embed.set_footer(text=f'Once Human')
     return embed
 
 
 async def tic_tac_toe_embed(interaction):
     embed = discord.Embed(
         title="❌Tic_Tac_Toe❌",
-        description=f"a game in which two players seek in alternate turns to complete a row, a column, or a diagonal"
+        description=f"A game in which two players seek in alternate turns to complete a row, a column, or a diagonal"
                     f" with either three O's or three X's drawn in the spaces of a grid of nine squares.",
         color=discord.Color.green(),
     )
@@ -180,7 +196,7 @@ async def ttt_stat_embed(games, player_name, Win, Loss, Tie, avatar, interaction
         value=Win_rate,
         inline=True
     )
-    embed.set_footer(text=f'Requested By : {interaction.user.name}')
+    embed.set_footer(text=f'Once Human')
     return embed
 
 
@@ -191,7 +207,6 @@ async def energy_link_leaderboard(interaction, data):
         color=discord.Color.green()
     )
     embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/1116597822624641035/1134146461186142299/Picture6.png')
-    # length = len(data) if len(data) < 10 else 10
     for i in range(0, len(data)):
         if i < 3:
             top = [':first_place:', ':second_place:', ':third_place:']

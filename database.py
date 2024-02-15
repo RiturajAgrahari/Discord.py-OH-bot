@@ -2,6 +2,88 @@ import mysql.connector
 import discord
 import random
 import itertools
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+HOST = os.getenv("MY_SQL_HOST")
+USER = os.getenv("MY_SQL_USER")
+PASSWORD = os.getenv("MY_SQL_PASSWORD")
+DATABASE = os.getenv("MY_SQL_DATABASE")
+
+
+# Need to add multiple columns and conditions!
+async def select_query(column: str, table: str, condition_column: str = None, condition_value: str | int = None,
+                       order_by_column: str = None, ascending: bool = True, limit: int = None, offset: int = 0):
+    sql = f"SELECT {column} FROM {table}"
+
+    if condition_column is None or condition_value is None:
+        pass
+    else:
+        if type(condition_value) is str:
+            sql += f" WHERE {condition_column} = '{condition_value}'"
+        else:
+            sql += f" WHERE {condition_column} = {condition_value}"
+
+    if order_by_column is None:
+        pass
+    else:
+        sql += f" ORDER BY {order_by_column}"
+
+    if not ascending:
+        sql += " DESC"
+
+    if limit:
+        sql += f" LIMIT {offset}, {limit}"
+
+    mydb = open_database()
+    mycursor = mydb.cursor()
+    mycursor.execute(sql)
+    output = mycursor.fetchall()
+    mydb.close()
+    return output
+
+
+# Need to add multiple conditions!
+async def update_query(table:str, key_value:dict, condition_column:str=None, condition_value:str | int=None, operation:str='equal'):
+    # {'koens': 100}
+    if condition_column is None or condition_value is None:
+        condition = ""
+    else:
+        if type(condition_value) is str or type(condition_value) is None:
+            condition = f" WHERE {condition_column} = '{condition_value}'"
+        else:
+            condition = f" WHERE {condition_column} = {condition_value}"
+
+    set = ""
+
+    for key, value in key_value.items():
+        if type(value) is str:
+            set += f", {key} = '{value}'"
+
+        elif type(value) is int:
+            if operation == 'equal':
+                set += f", {key} = {value}"
+            elif operation == 'addition':
+                set += f", {key} = {key} + {value}"
+            elif operation == 'subtraction':
+                set += f", {key} = {key} - {value}"
+            else:
+                print('wrong operation!')
+        else:
+            print('wrong value datatype')
+
+
+    set = set.lstrip(',')
+
+    mydb = open_database()
+    mycursor = mydb.cursor()
+    sql = f"UPDATE {table} SET{set}{condition}"
+    # print(f"(sql update query): {sql}")
+    mycursor.execute(sql)
+    mydb.commit()
+    mydb.close()
 
 
 class profile:
@@ -33,29 +115,21 @@ class profile:
     def get_time(self):
         return self.time
 
-
 def open_database():
     mydb = mysql.connector.connect(
-        host="your_host",
-        user="your_user",
-        password="your_password",
-        database="your_database"
+        host=HOST,
+        user=USER,
+        password=PASSWORD,
+        database=DATABASE
     )
     return mydb
 
-
 async def checking_main_profile(interaction):
-    mydb = open_database()
-    mycursor = mydb.cursor()
-    sql = f'select id from profile where discord_id = "{interaction.user.mention}"'
-    mycursor.execute(sql)
-    test = mycursor.fetchall()
-    mydb.close()
+    test = await select_query(column='id', table='profile', condition_column='discord_id', condition_value=interaction.user.mention)
     if len(test) == 0:
         print(f'creating {interaction.user.name} profile...')
         return await creating_main_profile(interaction.user.name, interaction.user.mention)
     else:
-        print(f'{interaction.user.name} profile already exist in database...')
         return test[0][0]
 
 
@@ -81,67 +155,14 @@ async def create_inventory(id):
     mydb.commit()
     mydb.close()
 
-
-async def energy_link(id):
-    mydb = open_database()
-    mycursor = mydb.cursor()
-    sql = f'select energy_link from profile where id = {id}'
-    mycursor.execute(sql)
-    energy_link = mycursor.fetchall()[0][0]
-    mydb.close()
-    return energy_link
-
-
-async def add_energy_link(uid, coins):
-    mydb = open_database()
-    energy = await energy_link(uid)
-    mycursor = mydb.cursor()
-    total = energy + coins
-    sql = f'update profile set energy_link = {total} where id = {uid}'
-    mycursor.execute(sql)
-    mydb.commit()
-    mydb.close()
-    return coins
-
-
-async def check_time(T, uid):
-    mydb = open_database()
-    mycursor = mydb.cursor()
-    sql = f'select status from profile where id = {uid}'
-    mycursor.execute(sql)
-    time = mycursor.fetchall()[0][0]
-    mydb.close()
-    if (T - time) < 24 * 60 * 60:
-        gap = T - time
-        return False, gap
-    else:
-        await update_status(T, uid)
-        return True, 0
-
-
-async def update_status(T, uid):
-    mydb = open_database()
-    mycursor = mydb.cursor()
-    sql = f'update profile set status = {T} where id = {uid}'
-    mycursor.execute(sql)
-    mydb.commit()
-    mydb.close()
-
-
 async def all_game_profile(game_name, pl_id, pl_stat):  # (game_name, [1, 2])
     for (uid, stat) in zip(pl_id, pl_stat):
-        mydb = open_database()
-        mycursor = mydb.cursor()
-        sql = f'select * from {game_name} where id = {uid}'
-        mycursor.execute(sql)
-        test = mycursor.fetchall()
-        mydb.close()
+        test = await select_query(column='*', table=game_name, condition_column='id', condition_value=uid)
         if len(test) == 0:
             print(f"creating {uid}'s rock paper scissor profile...")
             await creating_in_game_profile(game_name, uid, stat)
         else:
-            print(f'{uid} rock paper scissor profile already exist in database...')
-            await update_data(game_name, stat, uid)
+            await update_query(table=game_name, key_value={stat: 1}, condition_column='id', condition_value=uid, operation='addition')
 
 
 async def creating_in_game_profile(game_name, uid, stat):
@@ -152,16 +173,8 @@ async def creating_in_game_profile(game_name, uid, stat):
     mycursor.execute(sql, val)
     mydb.commit()
     mydb.close()
-    await update_data(game_name, stat, uid)
-
-
-async def update_data(game_name, stat, uid):
-    mydb = open_database()
-    mycursor = mydb.cursor()
-    sql = f'update {game_name} set {stat} = {stat} + 1 where id = {uid}'
-    mycursor.execute(sql)
-    mydb.commit()
-    mydb.close()
+    await update_query(table=game_name, key_value={stat: 1}, condition_column='id', condition_value=uid,
+                       operation='addition')
 
 
 class leaderboard_data:
@@ -221,3 +234,21 @@ class leaderboard_data:
         data = mycursor.fetchall()
         mydb.close()
         return data
+
+
+async def check_status(uid):
+    status = await select_query(column='status', table='profile', condition_column='id', condition_value=int(uid))
+    return status[0][0]
+
+async def add_energy_link(value, uid):
+    await update_query(table='profile', key_value={'energy_link': value}, condition_column='id', condition_value=uid, operation='addition')
+
+async def update_status(uid):
+    await update_query(table='profile', key_value={'status': 'claimed'}, condition_column='id', condition_value=uid)
+
+async def reset_data():
+    await update_query(table='profile', key_value={'status': 'not_claimed'})
+
+async def check_energy_link(uid):
+    energy_link = await select_query(column='energy_link', table='profile', condition_column='id', condition_value=uid)
+    return energy_link[0][0]

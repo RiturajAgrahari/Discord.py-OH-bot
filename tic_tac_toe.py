@@ -1,23 +1,31 @@
 import mysql.connector
 import discord
 from discord.ui import Button, View
-from embeds import *
-from database import profile, leaderboard_data, checking_main_profile, all_game_profile
+from embeds import tic_tac_toe_embed, ttt_game_embed, ttt_stat_embed
+from database import profile, leaderboard_data, checking_main_profile, all_game_profile, select_query
+import os
 import inspect
+from dotenv import load_dotenv
 
+load_dotenv()
+
+HOST = os.getenv("MY_SQL_HOST")
+USER = os.getenv("MY_SQL_USER")
+PASSWORD = os.getenv("MY_SQL_PASSWORD")
+DATABASE = os.getenv("MY_SQL_DATABASE")
 
 async def open_database():
     mydb = mysql.connector.connect(
-        host="your_host",
-        user="your_user",
-        password="your_password",
-        database="your_database"
+      host=HOST,
+      user=USER,
+      password=PASSWORD,
+      database=DATABASE
     )
     return mydb
 
-Player = []
-player_name = []
-pl_id = []
+Player = []                                        # Rituraj Sir
+player_name = []                                   # Rituraj Sir#7771
+pl_id = []                                         # <:@656565543544534544:>
 uid_data = []
 List = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -50,7 +58,6 @@ async def tictactoe(interaction):
                 uid = await checking_main_profile(interaction)
                 uid_data.append(uid)
                 client1 = str(interaction.user)
-                print(f'{client1} joined as a player 1')
                 await interaction.response.send_message(f'{interaction.user.mention} Joined!', ephemeral=True)
                 player_name.append(client1)
                 pl_id.append(interaction.user.mention)
@@ -61,7 +68,6 @@ async def tictactoe(interaction):
                 uid = await checking_main_profile(interaction)
                 uid_data.append(uid)
                 client2 = str(interaction.user)
-                print(f'{client2} joined as a player 2')
                 player_name.append(client2)
                 Player.append(client2.split('#')[0])
                 pl_id.append(interaction.user.mention)
@@ -69,7 +75,7 @@ async def tictactoe(interaction):
                 await interaction.response.edit_message(view=self)
                 await interaction.followup.send(f'Match is started!\n{pl_id[0]} V/S {pl_id[1]}')
                 await game(interaction, Player[0], Player[1])
-                print(f'Joined player --> {player_name} ')
+                print(f'Joined players in Tic Tac Toe --> {player_name} ')
             else:
                 if interaction.user.mention in pl_id:
                     await interaction.response.send_message(f'You already joined the match!', ephemeral=True)
@@ -152,7 +158,6 @@ async def move(self, interaction, button, given):
             else:
                 await interaction.followup.send(f"{pl_id[0]} and {pl_id[1]} it's a tie")
                 await all_game_profile('tic_tac_toe', uid_data, ["tie", "tie"])
-                # await checking_profile(Player, pl_id, ["tie", "tie"])
 
         elif self.click_count % 2 == 0 and str(interaction.user.mention) == pl_id[0]:
             button.label = '❌'
@@ -162,29 +167,25 @@ async def move(self, interaction, button, given):
             player_move = "cross"
             await results(interaction, given, player_move, pl_id[1])
         elif self.click_count % 2 != 0 and str(interaction.user) == player_name[1]:
-            print(interaction.user)
             button.label = '⭕'
             button.disabled = True
             self.click_count += 1
             await interaction.response.edit_message(view=self)
             player_move = "circle"
             await results(interaction, given, player_move, pl_id[0])
-            print(self.click_count)
         else:
             if interaction.user.mention in pl_id:
                 await interaction.response.send_message(f'This is not your turn!', ephemeral=True)
             else:
                 await interaction.response.send_message(f'Either you did not joined the game or the game is already'
                                                         f' ended!', ephemeral=True)
-    except Exception as e:
-        print(e)
+    except:
+        await interaction.response.send_message('Match is over!, use </play:1123130558768238665> to play!', ephemeral=True)
 
 
 async def results(interaction, value, player_move, turn):
-    print(value)
     List.insert(value, player_move)
     List.remove(value)
-    print(List)
     if List[0] == List[3] == List[6]:
         position = 0
         await winner(interaction, position)
@@ -211,6 +212,10 @@ async def results(interaction, value, player_move, turn):
         await winner(interaction, position)
     else:
         pass
+        # if turn is not None:
+        #     await interaction.followup.send(f'{turn} Your turn')
+        # else:
+        #     pass
 
 
 async def winner(interaction, position):
@@ -221,16 +226,9 @@ async def winner(interaction, position):
         await all_game_profile('tic_tac_toe', uid_data, ["loss", "wins"])
     await clear_data()
 
-
 async def get_ttt_data(id, game):
-    mydb = await open_database()
-    mycursor = mydb.cursor()
-    sql = f'select * from {game} where id = {id}'
-    mycursor.execute(sql)
-    value = mycursor.fetchall()[0]
-    mydb.close()
-    return value[1], value[2], value[3]
-
+    value = await select_query(column='*', table=game, condition_column='id', condition_value=id)
+    return value[0][1], value[0][2], value[0][3]
 
 async def ttt_stat(discord_id, games, game, interaction, name, avatar):
     try:
@@ -251,7 +249,6 @@ async def ttt_leaderboard(interaction, game, game_name, default, data):
         color=discord.Color.red()
     )
     embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/1116597822624641035/1134146461186142299/Picture6.png')
-    # length = len(data) if len(data) < 10 else 10
     for i in range(0, len(data)):
         if i < 3:
             top = [':first_place:', ':second_place:', ':third_place:']

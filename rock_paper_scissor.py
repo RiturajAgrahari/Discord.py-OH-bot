@@ -1,10 +1,18 @@
 import mysql.connector
 import discord
+import os
 from discord.ui import Button, View
 from embeds import *
-from database import profile, leaderboard_data, checking_main_profile, all_game_profile
+from database import profile, leaderboard_data, checking_main_profile, all_game_profile, select_query
 import inspect
+from dotenv import load_dotenv
 
+load_dotenv()
+
+HOST = os.getenv("MY_SQL_HOST")
+USER = os.getenv("MY_SQL_USER")
+PASSWORD = os.getenv("MY_SQL_PASSWORD")
+DATABASE = os.getenv("MY_SQL_DATABASE")
 
 discord_id_data = []
 moves_data = []
@@ -14,13 +22,12 @@ uid_data = []
 
 async def open_database():
     mydb = mysql.connector.connect(
-        host="your_host",
-        user="your_user",
-        password="your_password",
-        database="your_database"
+      host=HOST,
+      user=USER,
+      password=PASSWORD,
+      database=DATABASE
     )
     return mydb
-
 
 async def rps(interaction):
     discord_id_data.clear()
@@ -53,27 +60,24 @@ async def rps(interaction):
 
 async def fun(self, interaction, player_move):
     if self.click_count == 0 and not interaction.user.mention in discord_id_data:
-        print(f'{interaction.user} choosed {player_move}')
         self.click_count += 1
         uid = await checking_main_profile(interaction)
         uid_data.append(uid)
         discord_id_data.append(interaction.user.mention)
-        await interaction.response.send_message(f'{interaction.user.mention} selected his move', ephemeral=False)
+        await interaction.response.send_message(f'{interaction.user.mention} selected his move :man_tipping_hand:', ephemeral=False)
         self.value = True
         username_data.append(str(interaction.user).split('#')[0] )
         moves_data.append(player_move)
 
     elif self.click_count == 1 and not interaction.user.mention in discord_id_data:
-        print(f'{interaction.user} choosed {player_move}')
         self.click_count += 1
         uid = await checking_main_profile(interaction)
         uid_data.append(uid)
         discord_id_data.append(interaction.user.mention)
-        await interaction.response.send_message(f'{interaction.user.mention} selected his move', ephemeral=False)
+        await interaction.response.send_message(f'{interaction.user.mention} selected his move :man_tipping_hand:', ephemeral=False)
         self.value = True
         username_data.append(str(interaction.user).split("#")[0])
         moves_data.append(player_move)
-        print(f'results')
 
         if moves_data[0] == moves_data[1]:
             await interaction.followup.send(content=f"{discord_id_data[0]} selected {moves_data[0]}\n"
@@ -106,11 +110,18 @@ async def fun(self, interaction, player_move):
                 await interaction.followup.send(content=f'{discord_id_data[0]} selected {moves_data[0]}\n{discord_id_data[1]} selected {moves_data[1]}\n{discord_id_data[0]} win.🥳')
                 await results(uid_data, ["wins", "loss"])
 
+            else:
+                print('not possible in rps')
+                print(discord_id_data)
+                print(moves_data)
+                print(username_data)
+                print(uid_data)
+
     else:
         if interaction.user.mention in discord_id_data:
             await interaction.response.send_message(f'You have already choose your move', ephemeral=True)
         else:
-            await interaction.response.send_message(f'The game is already ended use /play again to start a new match',
+            await interaction.response.send_message(f'The game is already ended use </play:1123130558768238665> again to play!',
                                                     ephemeral=True)
 
 
@@ -119,13 +130,8 @@ async def results(uid_data, pl_stat):
 
 
 async def get_rps_data(id, game):
-    mydb = await open_database()
-    mycursor = mydb.cursor()
-    sql = f'select * from {game} where id = {id}'
-    mycursor.execute(sql)
-    value = mycursor.fetchall()[0]
-    mydb.close()
-    return value[1], value[2], value[3]
+    value = await select_query(column='*', table=game, condition_column='id', condition_value=id)
+    return value[0][1], value[0][2], value[0][3]
 
 
 async def RPS_stat(discord_id, games, game, interaction, name, avatar):
